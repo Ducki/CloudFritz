@@ -20,14 +20,24 @@ type CloudflareOptions struct {
 }
 
 func main() {
+	fmt.Println("Starting …")
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":4242", nil)
 
 	fmt.Println("Listening …")
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Received call")
+	fmt.Println("Received call from ")
+	fmt.Println(r.RemoteAddr)
+	fmt.Println(r.RequestURI)
+
+	r.ParseForm()
+	fmt.Println(r.Form)
+	if len(r.Form["token"]) == 0 {
+		fmt.Println("token empty")
+		return
+	}
 
 	co := CloudflareOptions{
 		user:   r.FormValue("user"),
@@ -65,7 +75,7 @@ func UpdateRecord(options CloudflareOptions) {
 
 	fmt.Println("Trying to change record …")
 
-	err = api.UpdateDNSRecord(context.Background(), zoneId, dnsRecord[0].ID, cloudflare.DNSRecord{Content: options.record})
+	err = api.UpdateDNSRecord(context.Background(), zoneId, dnsRecord[0].ID, cloudflare.DNSRecord{Content: options.newIp})
 	if err != nil {
 		log.Fatal(err)
 	}
