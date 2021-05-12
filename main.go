@@ -22,9 +22,11 @@ type CloudflareOptions struct {
 func main() {
 	fmt.Println("Starting …")
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":4242", nil)
 
-	fmt.Println("Listening …")
+	// -------------------------
+	// Start the listening loop
+	// -------------------------
+	http.ListenAndServe(":4242", nil)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +34,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.RemoteAddr)
 	fmt.Println(r.RequestURI)
 
+	// -------------------------
+	// Parse the received URL and check for the API token
+	// -------------------------
 	r.ParseForm()
 	fmt.Println(r.Form)
 	if len(r.Form["token"]) == 0 {
@@ -50,20 +55,34 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Supplied new IP is: " + string(co.newIp))
 	fmt.Println(co)
 
+	// -------------------------
+	// Update the record using the Cloudflare API
+	// -------------------------
+
 	UpdateRecord(co)
 }
 
 func UpdateRecord(options CloudflareOptions) {
+
+	// -------------------------
+	// Get API object
+	// -------------------------
 	api, err := cloudflare.NewWithAPIToken(options.token)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// -------------------------
+	// Get Zone ID in order to get the zone's DNS record
+	// -------------------------
 	zoneId, err := api.ZoneIDByName(options.domain)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// -------------------------
+	// Get the DNS record to update it later
+	// -------------------------
 	dnsRecord, err := api.DNSRecords(context.Background(), zoneId, cloudflare.DNSRecord{Name: options.record})
 	if err != nil {
 		log.Fatal(err)
@@ -75,6 +94,9 @@ func UpdateRecord(options CloudflareOptions) {
 
 	fmt.Println("Trying to change record …")
 
+	// -------------------------
+	// Update the record with the new A record
+	// -------------------------
 	err = api.UpdateDNSRecord(context.Background(), zoneId, dnsRecord[0].ID, cloudflare.DNSRecord{Content: options.newIp})
 	if err != nil {
 		log.Fatal(err)
